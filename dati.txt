@@ -1,0 +1,149 @@
+---JAVA---
+public static Schema createSchema(final List<String> schemaLocations, final String catalogLocation)
+	{
+		/*
+		 * This is mostly similar to org.apache.cxf.jaxrs.utils.schemas.SchemaHandler#createSchema(), except we are using Spring ResourceUtils class to get Resource URLs and we don't use any Bus
+		 * object. We are not using CXF's SchemaHandler class directly because it is part of cxf-rt-frontend-jaxrs which drags many dependencies on CXF we don't need, the full CXF JAX-RS framework
+		 * actually. It would make more sense if SchemaHandler was part of some cxf common utility package, but it is not the case as of writing (December 2014).
+		 */
+
+		final SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+		try
+		{
+			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+		}
+		catch (final SAXNotRecognizedException e)
+		{
+			throw new RuntimeException("Error configuring the XML schema factory for secure processing", e);
+		}
+		catch (final SAXNotSupportedException e)
+		{
+			throw new RuntimeException("Error configuring the XML schema factory for secure processing", e);
+		}
+		factory.setErrorHandler(SCHEMA_PARSING_ERROR_HANDLER);
+		final List<Source> sources = new ArrayList<>(schemaLocations.size());
+		try
+		{
+			for (final String schemaLocation : schemaLocations)
+			{
+				final URL schemaURL;
+				try
+				{
+					schemaURL = ResourceUtils.getURL(schemaLocation);
+				}
+				catch (final FileNotFoundException e)
+				{
+					throw new RuntimeException("No resource found for XML schema location: " + schemaLocation, e);
+				}
+				final Reader r = new BufferedReader(new InputStreamReader(schemaURL.openStream(), "UTF-8"));
+				final StreamSource source = new StreamSource(r);
+				source.setSystemId(schemaURL.toString());
+				sources.add(source);
+			}
+		}
+		catch (final IOException ex)
+		{
+			throw new RuntimeException("Failed to load XML schemas: " + schemaLocations, ex);
+		}
+
+		if (sources.isEmpty())
+		{
+			return null;
+		}
+
+		if (catalogLocation != null)
+		{
+			final OASISCatalogManager catalogResolver = new OASISCatalogManager();
+			final URL catalogURL;
+			try
+			{
+				catalogURL = ResourceUtils.getURL(catalogLocation);
+			}
+			catch (final FileNotFoundException e)
+			{
+				throw new RuntimeException("No resource found for XML catalog file location: " + catalogLocation, e);
+			}
+
+			try
+			{
+				catalogResolver.loadCatalog(catalogURL);
+				factory.setResourceResolver(new XmlSchemaResourceResolver(catalogLocation, catalogResolver));
+			}
+			catch (final IOException ex)
+			{
+				throw new RuntimeException("Catalog located at '" + catalogLocation + "' can not be loaded", ex);
+			}
+		}
+
+		final Schema s;
+		try
+		{
+			s = factory.newSchema(sources.toArray(new Source[sources.size()]));
+		}
+		catch (final SAXException e)
+		{
+			throw new RuntimeException("Failed to load XML schemas: " + schemaLocations, e);
+		}
+
+		return s;
+
+	}
+---TEST-1---
+public void test0()  throws Throwable  {
+      LinkedList<String> linkedList0 = new LinkedList<String>();
+      String string0 = "classpath:";
+      boolean boolean0 = linkedList0.add(string0);
+      // Undeclared exception!
+      try { 
+        SchemaHandler.createSchema(linkedList0, string0);
+      } catch(RuntimeException e) {
+         //
+         // Failed to load XML schemas: [classpath:]
+         //
+      }
+  }
+---TEST-2---
+public void test4()  throws Throwable  {
+      LinkedList<String> linkedList0 = new LinkedList<String>();
+      String string0 = "classpath:";
+      boolean boolean0 = linkedList0.add(string0);
+      String string1 = "http://saxon.sf.net/feature/linenumbering";
+      // Undeclared exception!
+      try { 
+        SchemaHandler.createSchema(linkedList0, string1);
+      } catch(RuntimeException e) {
+         //
+         // Catalog located at 'http://saxon.sf.net/feature/linenumbering' can not be loaded
+         //
+      }
+  }
+---TEST-3---
+public void test5()  throws Throwable  {
+      LinkedList<String> linkedList0 = new LinkedList<String>();
+      String string0 = "classpath:";
+      boolean boolean0 = linkedList0.add(string0);
+      String string1 = "OD";
+      // Undeclared exception!
+      try { 
+        SchemaHandler.createSchema(linkedList0, string1);
+      } catch(RuntimeException e) {
+         //
+         // Catalog located at 'OD' can not be loaded
+         //
+      }
+  }
+---TEST-4---
+public void test6()  throws Throwable  {
+      ArrayList<String> arrayList0 = new ArrayList<String>();
+      String string0 = "classpath:";
+      boolean boolean0 = arrayList0.add(string0);
+      String string1 = null;
+      // Undeclared exception!
+      try { 
+        SchemaHandler.createSchema(arrayList0, string1);
+      } catch(RuntimeException e) {
+         //
+         // Failed to load XML schemas: [classpath:]
+         //
+      }
+  }
