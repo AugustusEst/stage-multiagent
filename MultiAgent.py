@@ -9,6 +9,9 @@ from typing_extensions import TypedDict
 from langgraph.prebuilt import create_react_agent
 from langgraph.graph import END, StateGraph, START, MessagesState
 from langgraph.types import Command
+import javalang
+from javalang.tree import ClassDeclaration
+from langchain_core.prompts import PromptTemplate
 
 # Code generation related imports
 from langchain_core.output_parsers import StrOutputParser
@@ -77,21 +80,46 @@ def make_system_prompt(suffix: str) -> str:
 
 llm = ChatGoogleGenerativeAI(model= "gemini-2.0-flash")
 def agent_1(state: MessagesState) -> Command[Literal["agent_2", END]]:
-    agent_comments = create_react_agent(
-    llm,
-    tools=[],
-    prompt=make_system_prompt(
-        "You can only do maths. You are working with a research colleague."
-    ),)
-    response = agent_comments.invoke(state)
-    response["messages"][-1] = HumanMessage(
-        content=response["messages"][-1].content, name="agent_1"
-    )
-    print(response)
+    
+
+    def parse_java_code(java_code):
+        try:
+            tree = javalang.parse.parse(java_code)
+            class_names = [node.name for _, node in tree.filter(ClassDeclaration)]
+            return str(class_names)
+        except Exception as e:
+            return f"Errore durante l'analisi: {e}"
+        
+    def generate_prompt(java_code, test_code, parsed_code):
+        template = PromptTemplate(
+            input_variables=["java_code", "test_code", "parsed_code"],
+            template=(
+                "Immagina di essere un esperto analista di codice Java e test unitari.\n\n"
+                "Ti fornisco il seguente metodo Java e il suo caso di test associato:\n\n"
+                "Metodo Java:\n{java_code}\n\n"
+                "Test unitario:\n{test_code}\n\n"
+                "Mi devi fornire un'analisi dettagliata delle funzionalità testate dai casi di test, spiegando che cosa testa nello specifico il caso di test:\n\n"
+            )
+        )
+        return llm.invoke(template.format(java_code=java_code, test_code=test_code, parsed_code=parsed_code))
+        
+    parsed_code = parse_java_code(java_code)
+    new_messages = state["messages"]
+
+    for i, test_case in enumerate(test_cases, start=1):
+        if test_case.strip():
+            analysis = generate_prompt(java_code, test_case, parsed_code)
+            result = f"### Risultato dell'analisi per test case {i} ###\n{analysis.content}"
+            new_messages.append(HumanMessage(content=result, name="agent_1"))
+
+    #response = {"messages": state["messages"] + [HumanMessage(content=response_agent1, name="agent_2")]}
+    print(new_messages)
     return Command(
-        goto= "agent_2",
-        update={"messages": response["messages"]},
+    goto="agent_2",
+    update=new_messages,
     )
+       
+    
 
 def agent_2(state: MessagesState) -> Command[Literal["agent_1", END]]:
     print("---AGENT 2: CODE GENERATION AGENT---")
