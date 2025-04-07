@@ -9,6 +9,7 @@ from typing_extensions import TypedDict
 from langgraph.prebuilt import create_react_agent
 from langgraph.graph import END, StateGraph, START, MessagesState
 from langgraph.types import Command
+from langchain_core.messages import convert_to_messages
 
 # Code generation related imports
 from langchain_core.output_parsers import StrOutputParser
@@ -227,6 +228,41 @@ builder.add_node(agent_2)
 builder.add_edge(START, "agent_1")
 network = builder.compile()
 
+def pretty_print_messages(update):
+    if isinstance(update, tuple):
+        ns, update = update
+        # skip parent graph updates in the printouts
+        if len(ns) == 0:
+            return
+
+        graph_id = ns[-1].split(":")[0]
+        print(f"Update from subgraph {graph_id}:")
+        print("\n")
+
+    for node_name, node_update in update.items():
+        print(f"Update from node {node_name}:")
+        print("\n")
+
+        for m in convert_to_messages(node_update["messages"]):
+            m.pretty_print()
+        print("\n")
+
+for chunk in network.stream(
+    {"messages": [("user", "First, comment the test code, then"
+                "You need to find which inputs, already visible in the test case, or which methods are those that are most important if invoked differently with other types of inputs "
+                "(most impactful methods/inputs that if changed can increase the coverage of the test case). "
+                "Once you make it, finish."
+                "This is the test"
+                "  @Test(timeout = 4000) public void test06()  throws Throwable  { LinkedList<FieldInfo> linkedList0 = new LinkedList<FieldInfo>(); String string0 = \"3=G&/TqSSy8\"; Class<Void> class0 = Void.class; Class<FieldInfo> class1 = FieldInfo.class; Field field0 = null; int int0 = (-1443802554); FieldInfo fieldInfo0 = new FieldInfo(string0, class0, class0, class0, field0, int0, int0, int0); boolean boolean0 = linkedList0.add(fieldInfo0); FieldInfo fieldInfo1 = new FieldInfo(string0, class0, class1, class0, field0, fieldInfo0.parserFeatures, fieldInfo0.serialzeFeatures, int0); boolean boolean1 = JavaBeanInfo.add(linkedList0, fieldInfo1);",
+    )],},  # Initial user message
+):
+    pretty_print_messages(chunk)
+
+
+
+
+
+"""
 events = network.stream(
     {
         "messages": [
@@ -242,6 +278,8 @@ events = network.stream(
     # Maximum number of steps to take in the graph
     {"recursion_limit": 10},
 )
+
 for s in events:
     print(s)
-    print("----")
+    print("----") 
+    """
