@@ -8,11 +8,15 @@ from typing import List, Literal, Dict, Any
 from typing_extensions import TypedDict
 from langgraph.prebuilt import create_react_agent
 from langgraph.graph import END, StateGraph, START, MessagesState
-from tools import search_tool
 from langgraph.types import Command
 
 # Code generation related imports
 from langchain_core.output_parsers import StrOutputParser
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+api_key = os.getenv("GOOGLE_API_KEY")
 
 def make_system_prompt(suffix: str) -> str:
     return (
