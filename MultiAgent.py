@@ -19,6 +19,54 @@ import os
 load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
 
+nome_file = "dati.txt"  # Nome del file di input
+# Se il percorso è solo il nome del file, lo cerca nella cartella dello script
+if not os.path.isabs(nome_file):
+    nome_file = os.path.join(os.getcwd(), nome_file)  # Lo converte in percorso assoluto
+
+# Controlla se il file esiste
+if not os.path.exists(nome_file):
+    with open(nome_file, "w", encoding="utf-8") as file:
+        file.write("File creato perché non esisteva.\n")
+    print(f"File '{nome_file}' creato con successo!")
+else:
+    print(f"Il file '{nome_file}' esiste già")
+
+# Lettura del codice dal file
+try:
+    if not os.path.exists(nome_file):
+        print(f"File non trovato: {nome_file}")
+        exit()
+    with open(nome_file, "r") as f:
+        file_content = f.read()
+except PermissionError:
+    print(f"Permessi negati per il file: {nome_file}")
+    exit()
+except Exception as e:
+    print(f"Errore durante la lettura del file: {e}")
+    exit()
+
+# Separazione del metodo Java e dei casi di test
+java_code = "" # Inizializza la variabile per il codice Java
+test_cases = [] # Inizializza la lista per i casi di test
+lines = file_content.splitlines()  # Inizializza la lista per le righe del file
+test_case_num = 1 # Inizializza il contatore per i casi di test
+current_test_case = "" # Inizializza la variabile per il caso di test corrente
+
+for line in lines:
+    if line.startswith("---TEST-"):
+        if current_test_case:
+            test_cases.append(current_test_case)
+        current_test_case = ""
+    elif line.strip() == "---JAVA---":
+        java_code = ""
+    elif java_code == "":
+        java_code += line + "\n"
+    else:
+        current_test_case += line + "\n"
+test_cases.append(current_test_case)
+
+
 def make_system_prompt(suffix: str) -> str:
     return (
         "You are a helpful coding assistant with expertise in java tests, collaborating with other code assistants."
