@@ -88,7 +88,7 @@ public static Schema createSchema(final List<String> schemaLocations, final Stri
 		return s;
 
 	}
----TEST-1---
+---TEST---
 public void test0()  throws Throwable  {
       LinkedList<String> linkedList0 = new LinkedList<String>();
       String string0 = "classpath:";
@@ -96,51 +96,6 @@ public void test0()  throws Throwable  {
       // Undeclared exception!
       try { 
         SchemaHandler.createSchema(linkedList0, string0);
-      } catch(RuntimeException e) {
-         //
-         // Failed to load XML schemas: [classpath:]
-         //
-      }
-  }
----TEST-2---
-public void test4()  throws Throwable  {
-      LinkedList<String> linkedList0 = new LinkedList<String>();
-      String string0 = "classpath:";
-      boolean boolean0 = linkedList0.add(string0);
-      String string1 = "http://saxon.sf.net/feature/linenumbering";
-      // Undeclared exception!
-      try { 
-        SchemaHandler.createSchema(linkedList0, string1);
-      } catch(RuntimeException e) {
-         //
-         // Catalog located at 'http://saxon.sf.net/feature/linenumbering' can not be loaded
-         //
-      }
-  }
----TEST-3---
-public void test5()  throws Throwable  {
-      LinkedList<String> linkedList0 = new LinkedList<String>();
-      String string0 = "classpath:";
-      boolean boolean0 = linkedList0.add(string0);
-      String string1 = "OD";
-      // Undeclared exception!
-      try { 
-        SchemaHandler.createSchema(linkedList0, string1);
-      } catch(RuntimeException e) {
-         //
-         // Catalog located at 'OD' can not be loaded
-         //
-      }
-  }
----TEST-4---
-public void test6()  throws Throwable  {
-      ArrayList<String> arrayList0 = new ArrayList<String>();
-      String string0 = "classpath:";
-      boolean boolean0 = arrayList0.add(string0);
-      String string1 = null;
-      // Undeclared exception!
-      try { 
-        SchemaHandler.createSchema(arrayList0, string1);
       } catch(RuntimeException e) {
          //
          // Failed to load XML schemas: [classpath:]

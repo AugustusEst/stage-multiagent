@@ -32,8 +32,6 @@ if not os.path.exists(nome_file):
     with open(nome_file, "w", encoding="utf-8") as file:
         file.write("File creato perché non esisteva.\n")
     print(f"File '{nome_file}' creato con successo!")
-else:
-    print(f"Il file '{nome_file}' esiste già")
 
 # Lettura del codice dal file
 try:
@@ -51,23 +49,21 @@ except Exception as e:
 
 # Separazione del metodo Java e dei casi di test
 java_code = "" # Inizializza la variabile per il codice Java
-test_cases = [] # Inizializza la lista per i casi di test
+test_code = "" # Inizializza la variabile per i casi di test
 lines = file_content.splitlines()  # Inizializza la lista per le righe del file
-test_case_num = 1 # Inizializza il contatore per i casi di test
-current_test_case = "" # Inizializza la variabile per il caso di test corrente
 
-for line in lines:
-    if line.startswith("---TEST-"):
-        if current_test_case:
-            test_cases.append(current_test_case)
-        current_test_case = ""
-    elif line.strip() == "---JAVA---":
+for x in range(0, len(lines)):
+    i=x
+    line=lines[i]
+    if line.strip() == "---JAVA---":
         java_code = ""
-    elif java_code == "":
+    elif line != "---TEST---":
         java_code += line + "\n"
-    else:
-        current_test_case += line + "\n"
-test_cases.append(current_test_case)
+    elif line.strip()== "---TEST---":
+        break
+for x in range(i+1, len(lines)):
+    line=lines[x]
+    test_code += line + "\n"
 
 
 def make_system_prompt(suffix: str) -> str:
@@ -96,10 +92,10 @@ def agent_1(state: MessagesState) -> Command[Literal["agent_2", END]]:
             input_variables=["java_code", "test_code", "parsed_code"],
             template=(
                 "Immagina di essere un esperto analista di codice Java e test unitari.\n\n"
-                "Ti fornisco il seguente metodo Java e il suo caso di test associato:\n\n"
+                "Ti fornisco il seguente metodo Java e i suoi casi di test associato:\n\n"
                 "Metodo Java:\n{java_code}\n\n"
                 "Test unitario:\n{test_code}\n\n"
-                "Mi devi fornire un'analisi dettagliata delle funzionalità testate dai casi di test, spiegando che cosa testa nello specifico il caso di test:\n\n"
+                "Mi devi fornire un'analisi dettagliata delle funzionalità testate i casi di test, spiegando che cosa testa nello specifico i casi di test:\n\n"
             )
         )
         return llm.invoke(template.format(java_code=java_code, test_code=test_code, parsed_code=parsed_code))
@@ -107,14 +103,12 @@ def agent_1(state: MessagesState) -> Command[Literal["agent_2", END]]:
     parsed_code = parse_java_code(java_code)
     new_messages = state["messages"]
 
-    for i, test_case in enumerate(test_cases, start=1):
-        if test_case.strip():
-            analysis = generate_prompt(java_code, test_case, parsed_code)
-            result = f"### Risultato dell'analisi per test case {i} ###\n{analysis.content}"
-            new_messages.append(HumanMessage(content=result, name="agent_1"))
+    analysis = generate_prompt(java_code, test_code, parsed_code)
+    result = f"### Risultato dell'analisi per test case {i} ###\n{analysis.content}"
+    new_messages.append(HumanMessage(content=result, name="agent_1"))
 
     #response = {"messages": state["messages"] + [HumanMessage(content=response_agent1, name="agent_2")]}
-    print(new_messages)
+
     return Command(
     goto="agent_2",
     update=new_messages,
@@ -327,10 +321,8 @@ for chunk in network.stream(
     {"messages": [("user", "First, comment the test code, then"
                 "You need to find which inputs, already visible in the test case, or which methods are those that are most important if invoked differently with other types of inputs "
                 "(most impactful methods/inputs that if changed can increase the coverage of the test case). "
-                "Once you make it, finish."
-                "This is the test"
-                "  @Test(timeout = 4000) public void test06()  throws Throwable  { LinkedList<FieldInfo> linkedList0 = new LinkedList<FieldInfo>(); String string0 = \"3=G&/TqSSy8\"; Class<Void> class0 = Void.class; Class<FieldInfo> class1 = FieldInfo.class; Field field0 = null; int int0 = (-1443802554); FieldInfo fieldInfo0 = new FieldInfo(string0, class0, class0, class0, field0, int0, int0, int0); boolean boolean0 = linkedList0.add(fieldInfo0); FieldInfo fieldInfo1 = new FieldInfo(string0, class0, class1, class0, field0, fieldInfo0.parserFeatures, fieldInfo0.serialzeFeatures, int0); boolean boolean1 = JavaBeanInfo.add(linkedList0, fieldInfo1);",
-    )],},  # Initial user message
+                "Once you make it, finish.",
+    )],}, subgraphs=True # Initial user message
 ):
     pretty_print_messages(chunk)
 
