@@ -27,13 +27,13 @@ nome_file = "dati.txt"  # Nome del file di input
 if not os.path.isabs(nome_file):
     nome_file = os.path.join(os.getcwd(), nome_file)  # Lo converte in percorso assoluto
 
-# Controlla se il file esiste
+# Check if the file exist
 if not os.path.exists(nome_file):
     with open(nome_file, "w", encoding="utf-8") as file:
         file.write("File creato perché non esisteva.\n")
     print(f"File '{nome_file}' creato con successo!")
 
-# Lettura del codice dal file
+#Read del codice dal file
 try:
     if not os.path.exists(nome_file):
         print(f"File non trovato: {nome_file}")
@@ -91,11 +91,13 @@ def agent_1(state: MessagesState) -> Command[Literal["agent_2", END]]:
         template = PromptTemplate(
             input_variables=["java_code", "test_code", "parsed_code"],
             template=(
-                "Immagina di essere un esperto analista di codice Java e test unitari.\n\n"
-                "Ti fornisco il seguente metodo Java e i suoi casi di test associato:\n\n"
+                "Immagina di essere un esperto analista di codice Java e test unitari.\n\n" 
+                "Ti fornisco il seguente metodo Java e i suoi casi di test associati:\n\n"
                 "Metodo Java:\n{java_code}\n\n"
                 "Test unitario:\n{test_code}\n\n"
-                "Mi devi fornire un'analisi dettagliata delle funzionalità testate i casi di test, spiegando che cosa testa nello specifico i casi di test:\n\n"
+                "Mi devi fornire una descrizione dettagliata delle funzionalità testate dai casi di test (esempio: il test01 testa la funzionalita...),\n\n"
+                "poi mi devi anche spiegare che cosa testano i casi di test nello specifico, facendo riferimento direttamente alle parti di codice interessate.\n\n"
+                "Voglio che mi fornisci una risposta ordinata e non generica come se queste informazioni le dovessi passare a qualcuno a cui servono poi per migliorare la copertura dei casi di test (non mi serve una descrizione del metodo).\n\n"
             )
         )
         return llm.invoke(template.format(java_code=java_code, test_code=test_code, parsed_code=parsed_code))
@@ -104,8 +106,12 @@ def agent_1(state: MessagesState) -> Command[Literal["agent_2", END]]:
     new_messages = state["messages"]
 
     analysis = generate_prompt(java_code, test_code, parsed_code)
-    result = f"### Risultato dell'analisi per test case {i} ###\n{analysis.content}"
+    result = f"### Risultato dell'analisi per test case ###\n{analysis.content}"
     new_messages.append(HumanMessage(content=result, name="agent_1"))
+    #result= java_code
+    #new_messages.append(HumanMessage(content=result, name="java_code"))
+    #result= test_code
+    #new_messages.append(HumanMessage(content=result, name="test_code"))
 
     #response = {"messages": state["messages"] + [HumanMessage(content=response_agent1, name="agent_2")]}
 
@@ -145,7 +151,11 @@ def agent_2(state: MessagesState) -> Command[Literal["agent_1", END]]:
             "system",
             """You are a coding assistant. Answer the user question based on your knowledge.
             Ensure any code you provide can be executed with all required imports and variables defined. 
-            Structure your answer with a description of the code solution, imports, and functioning code block."""
+            Structure your answer with a description of the code solution, imports, and functioning code block.
+            You need to find which inputs, already visible in the test case, or which methods are those that are most important if invoked differently with other types of inputs 
+            (most impactful methods/inputs that if changed can increase the coverage of the test case).
+            Java code: \n{java_code}\n\n
+            Test code you need to improve: \n{test_code}\n\n"""
         ),
         ("placeholder", "{messages}"),
     ])
@@ -153,7 +163,7 @@ def agent_2(state: MessagesState) -> Command[Literal["agent_1", END]]:
     code_gen_chain = code_gen_prompt | llm.with_structured_output(code)
     
     # Max tries and reflection flag
-    max_iterations = 3
+    max_iterations = 0
     flag = "do not reflect"
     
     # Generate code function
@@ -163,11 +173,11 @@ def agent_2(state: MessagesState) -> Command[Literal["agent_1", END]]:
         iterations = state["iterations"]
         error = state["error"]
         
-        if error == "yes":
+        """if error == "yes":
             messages += [(
                 "user",
                 "Now, try again. Invoke the code tool to structure the output with a prefix, imports, and code block:"
-            )]
+            )]"""
         
         # Extract the latest user message from the MessagesState
         user_query = ""
@@ -177,6 +187,8 @@ def agent_2(state: MessagesState) -> Command[Literal["agent_1", END]]:
         
         # Solution
         code_solution = code_gen_chain.invoke({
+            "java_code": java_code,
+            "test_code": test_code,
             "context": concatenated_content, 
             "messages": [("user", user_query)]
         })
@@ -202,7 +214,7 @@ def agent_2(state: MessagesState) -> Command[Literal["agent_1", END]]:
         code = code_solution.code
         
         # Simple validation - in real scenario we'd execute the code
-        if "import" not in imports.lower():
+        """if "import" not in imports.lower():
             print("---CODE IMPORT CHECK: FAILED---")
             error_message = [("user", f"Your solution failed the import test: No imports found")]
             messages += error_message
@@ -211,7 +223,7 @@ def agent_2(state: MessagesState) -> Command[Literal["agent_1", END]]:
                 "messages": messages,
                 "iterations": iterations,
                 "error": "yes",
-            }
+            }"""
         
         # No errors
         print("---NO CODE TEST FAILURES---")
@@ -227,12 +239,12 @@ def agent_2(state: MessagesState) -> Command[Literal["agent_1", END]]:
         error = state["error"]
         iterations = state["iterations"]
         
-        if error == "no" or iterations == max_iterations:
-            print("---DECISION: FINISH---")
-            return "end"
-        else:
+        #if error == "no" or iterations == max_iterations:
+        print("---DECISION: FINISH---")
+        return "end"
+        """else:
             print("---DECISION: RE-TRY SOLUTION---")
-            return "generate"
+            return "generate"""
     
     # Create the code generation workflow
     workflow = StateGraph(CodeGenState)
