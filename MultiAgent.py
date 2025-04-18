@@ -82,7 +82,6 @@ def agent_1(state: MessagesState) -> Command[Literal["agent_2", END]]:
         template = PromptTemplate(
             input_variables=["java_code", "test_code", "parsed_code"],
             template=(
-                "Immagina di essere un esperto analista di codice Java e test unitari.\n\n" 
                 "Ti fornisco il seguente metodo Java e i suoi casi di test associati:\n\n"
                 "Metodo Java:\n{java_code}\n\n"
                 "Test unitario:\n{test_code}\n\n"
@@ -136,7 +135,7 @@ def agent_2(state: MessagesState) -> Command[Literal["agent_1", END]]:
     code_gen_prompt = ChatPromptTemplate.from_messages([
         (
             "system",
-            """You are a coding assistant. Answer the user question based on your knowledge.
+            """Answer the user question based on your knowledge.
             Ensure any code you provide can be executed with all required imports and variables defined. 
             Structure your answer with a description of the code solution, imports, and functioning code block.
             You need to find which inputs, already visible in the test case, or which methods are those that are most important if invoked differently with other types of inputs 
@@ -318,14 +317,18 @@ def pretty_print_messages(update):
             m.pretty_print()
         print("\n")
 
-for chunk in network.stream(
-    {"messages": [("user", "First, comment the test code, then"
-                "You need to find which inputs, already visible in the test case, or which methods are those that are most important if invoked differently with other types of inputs "
-                "(most impactful methods/inputs that if changed can increase the coverage of the test case). "
-                "Once you make it, finish.",
-    )],}, subgraphs=True # Initial user message
-):
-    pretty_print_messages(chunk)
+final_state = network.invoke({
+    "messages": [("user", 
+        "Imagine you are an expert analyst of Java code and unit tests.\n\n"
+        "I hand you the Java method of a class and its associated test cases.\n\n"
+        "You will have to analyse them carefully and provide me with an answer according to the question I ask you...\n\n"
+        "I want you to give me a clear and straight answer to the question I ask you. \n\n"
+    )],
+})
+
+for m in convert_to_messages(final_state["messages"]):
+    m.pretty_print()
+
 
 
 
