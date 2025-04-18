@@ -107,155 +107,77 @@ def agent_1(state: MessagesState) -> Command[Literal["agent_2", END]]:
     
 
 def agent_2(state: MessagesState) -> Command[Literal["agent_1", END]]:
-    print("---AGENT 2: CODE GENERATION AGENT---") 
-
-    # Code generation agent setup
+    
     class CodeGenState(TypedDict):
-        """State for the code generation agent"""
-        error: str
+        """
+
+        messages : Everything that has been said so far in the conversation
+        code : Code solution
+
+        """
         messages: List
-        generation: str
-        iterations: int
-    
-    
+        code: str
+
+
+    def code_generate(state: CodeGenState):
+
+        messages = state["messages"]
+
+
+        code_solution = code_gen_complete.invoke(
+            {"messages": messages, 
+            "java_code": java_code,
+            "test_code": test_code}
+        )
+        messages += [
+            (
+                "assistant",
+                f"{code_solution.description} \n Imports: {code_solution.imports} \n Code: {code_solution.code}",
+            )
+        ]
+
+        return {"code": code_solution, "messages": messages}
+
+
+    code_prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                """You are a coding assistant with expertise in java tests for the specific project\n 
+                Answer the user 
+                question based on the above provided documentation. Ensure any code you provide can be executed \n 
+                with all required imports and variables defined. Structure your answer with a description of the code solution. \n
+                Then list the imports. And finally list the functioning code block as it could be normally executed. \n
+                You need to find which inputs, already visible in the test case, or which methods are those that are most important if invoked differently with other types of inputs 
+                (most impactful methods/inputs that if changed can increase the coverage of the test case).\n
+                Here is the java code: {java_code} \n
+                Here is the test code you need to improve coverage: {test_code} \n
+                Here is the user question:""",
+            ),
+            ("placeholder", "{messages}"),
+        ]
+    )
 
     class code(BaseModel):
-        """Schema for code solutions"""
-        prefix: str = Field(description="Description of the problem and approach")
-        imports: str = Field(description="Code block import statements")
-        code: str = Field(description="Code block not including import statements")
-    
-    # Set up context from a dummy URL for demonstration
-    # In a real scenario, this would be retrieved based on the query
-    concatenated_content = "Example context for code generation"
-    
-    # LLM for code generation with structured output
-    
-    # Code generation prompt
-    code_gen_prompt = ChatPromptTemplate.from_messages([
-        (
-            "system",
-            """Answer the user question based on your knowledge.
-            Ensure any code you provide can be executed with all required imports and variables defined. 
-            Structure your answer with a description of the code solution, imports, and functioning code block.
-            You need to find which inputs, already visible in the test case, or which methods are those that are most important if invoked differently with other types of inputs 
-            (most impactful methods/inputs that if changed can increase the coverage of the test case).
-            Java code: \n{java_code}\n\n
-            Test code you need to improve: \n{test_code}\n\n"""
-        ),
-        ("placeholder", "{messages}"),
-    ])
-    
-    code_gen_chain = code_gen_prompt | llm.with_structured_output(code)
-    
-    # Max tries and reflection flag
-    max_iterations = 0
-    flag = "do not reflect"
-    
-    # Generate code function
-    def generate(state: CodeGenState):
-        print("---GENERATING CODE SOLUTION---")
-        messages = state["messages"]
-        iterations = state["iterations"]
-        error = state["error"]
-        
-        """if error == "yes":
-            messages += [(
-                "user",
-                "Now, try again. Invoke the code tool to structure the output with a prefix, imports, and code block:"
-            )]"""
-        
-        # Extract the latest user message from the MessagesState
-        user_query = ""
-        for msg in messages:
-            if msg[0] == "user":
-                user_query = msg[1]
-        
-        # Solution
-        code_solution = code_gen_chain.invoke({
-            "java_code": java_code,
-            "test_code": test_code,
-            "context": concatenated_content, 
-            "messages": [("user", user_query)]
-        })
-        
-        messages += [(
-            "assistant",
-            f"{code_solution.prefix} \n Imports: {code_solution.imports} \n Code: {code_solution.code}"
-        )]
-        
-        # Increment
-        iterations = iterations + 1
-        return {"generation": code_solution, "messages": messages, "iterations": iterations}
-    
-    
 
-    # Code check function
-    def code_check(state: CodeGenState):
-        print("---CHECKING CODE---")
-        messages = state["messages"]
-        code_solution = state["generation"]
-        iterations = state["iterations"]
-        
-        # Get solution components
-        imports = code_solution.imports
-        code = code_solution.code
-        
-        # Simple validation - in real scenario we'd execute the code
-        """if "import" not in imports.lower():
-            print("---CODE IMPORT CHECK: FAILED---")
-            error_message = [("user", f"Your solution failed the import test: No imports found")]
-            messages += error_message
-            return {
-                "generation": code_solution,
-                "messages": messages,
-                "iterations": iterations,
-                "error": "yes",
-            }"""
-        
-        # No errors
-        print("---NO CODE TEST FAILURES---")
-        return {
-            "generation": code_solution,
-            "messages": messages,
-            "iterations": iterations,
-            "error": "no",
-        }
-    
-    # Decision function
-    def decide_to_finish(state: CodeGenState):
-        error = state["error"]
-        iterations = state["iterations"]
-        
-        #if error == "no" or iterations == max_iterations:
-        print("---DECISION: FINISH---")
-        return "end"
-        """else:
-            print("---DECISION: RE-TRY SOLUTION---")
-            return "generate"""
-    
-    # Create the code generation workflow
-    workflow = StateGraph(CodeGenState)
-    
-    # Define the nodes
-    workflow.add_node("generate", generate)
-    workflow.add_node("check_code", code_check)
-    
-    # Build graph
-    workflow.add_edge(START, "generate")
-    workflow.add_edge("generate", "check_code")
-    workflow.add_conditional_edges(
-        "check_code",
-        decide_to_finish,
-        {
-            "end": END,
-            "generate": "generate",
-        },
-    )
-    
-    app = workflow.compile()
-    
-    # Extract the user query from the agent messages
+        description: str = Field(description="Description of what needs to be done to improve test coverage")
+        imports: str = Field(description="Code imports")
+        code: str = Field(description="Improved code not including imports")
+
+
+
+    llm = ChatGoogleGenerativeAI(model= "gemini-2.0-flash") #gemini-2.5-pro-exp-03-25")   #"gemini-2.0-flash")
+
+    code_gen_complete = code_prompt | llm.with_structured_output(code)
+
+    graph = StateGraph(CodeGenState)
+
+    graph.add_node("generate", code_generate)
+    graph.add_edge(START, "generate")
+    graph.add_edge("generate", END)
+
+    app = graph.compile()
+
     user_query = ""
     for msg in state["messages"]:
         if isinstance(msg, tuple) and msg[0] == "user":
@@ -263,25 +185,16 @@ def agent_2(state: MessagesState) -> Command[Literal["agent_1", END]]:
         elif hasattr(msg, 'content'):
             if msg.type == "human":
                 user_query = msg.content
-    
-    # Run the code generation workflow
-    solution = app.invoke({
-        "messages": [("user", user_query)], 
-        "iterations": 0, 
-        "error": ""
-    })
-    
-    # Create a response message with the code solution
-    if "generation" in solution and solution["generation"]:
-        code_sol = solution["generation"]
-        final_response = (
+
+    solution = app.invoke({"messages": [("user", user_query)],})
+    code_sol = solution["code"]
+    final_response = (
             f"FINAL ANSWER\n\nHere's the code solution:\n\n"
-            f"{code_sol.prefix}\n\n"
-            f"Imports:\n```python\n{code_sol.imports}\n```\n\n"
-            f"Code:\n```python\n{code_sol.code}\n```"
+            f"{code_sol.description}\n\n"
+            f"Imports:\n```\n{code_sol.imports}\n```\n\n"
+            f"Code:\n```\n{code_sol.code}\n```"
         )
-    else:
-        final_response = "FINAL ANSWER\n\nI couldn't generate a proper code solution."
+
     
     # Add the response to the state
     response = {"messages": state["messages"] + [HumanMessage(content=final_response, name="agent_2")]}
@@ -328,30 +241,3 @@ final_state = network.invoke({
 
 for m in convert_to_messages(final_state["messages"]):
     m.pretty_print()
-
-
-
-
-
-
-"""
-events = network.stream(
-    {
-        "messages": [
-            (
-                "user",
-                "First, comment the test code, then"
-                "You need to find which inputs, already visible in the test case, or which methods are those that are most important if invoked differently with other types of inputs "
-                "(most impactful methods/inputs that if changed can increase the coverage of the test case). "
-                "Once you make it, finish.",
-            )
-        ],
-    },
-    # Maximum number of steps to take in the graph
-    {"recursion_limit": 10},
-)
-
-for s in events:
-    print(s)
-    print("----") 
-    """
