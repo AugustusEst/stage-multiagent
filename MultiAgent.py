@@ -30,21 +30,21 @@ if not os.path.isabs(nome_file):
 # Check if the file exist
 if not os.path.exists(nome_file):
     with open(nome_file, "w", encoding="utf-8") as file:
-        file.write("File creato perché non esisteva.\n")
-    print(f"File '{nome_file}' creato con successo!")
+        file.write("File created because it did not exist.\n")
+    print(f"File '{nome_file}' successfully created!")
 
 #Read del codice dal file
 try:
     if not os.path.exists(nome_file):
-        print(f"File non trovato: {nome_file}")
+        print(f"File not found: {nome_file}")
         exit()
     with open(nome_file, "r") as f:
         file_content = f.read()
 except PermissionError:
-    print(f"Permessi negati per il file: {nome_file}")
+    print(f"Permissions denied for the file: {nome_file}")
     exit()
 except Exception as e:
-    print(f"Errore durante la lettura del file: {e}")
+    print(f"Error while reading the file: {e}")
     exit()
 
 # Separazione del metodo Java e dei casi di test
@@ -76,7 +76,7 @@ def agent_1(state: MessagesState) -> Command[Literal["agent_2", END]]:
             class_names = [node.name for _, node in tree.filter(ClassDeclaration)]
             return str(class_names)
         except Exception as e:
-            return f"Errore durante l'analisi: {e}"
+            return f"Error during analysis: {e}"
         
     def generate_prompt(java_code, test_code, parsed_code):
         template = PromptTemplate(
@@ -96,7 +96,7 @@ def agent_1(state: MessagesState) -> Command[Literal["agent_2", END]]:
     new_messages = state["messages"]
 
     analysis = generate_prompt(java_code, test_code, parsed_code)
-    result = f"### Risultato dell'analisi per test case ###\n{analysis.content}"
+    result = f"### Analysis result per test case ###\n{analysis.content}"
     new_messages.append(HumanMessage(content=result, name="agent_1"))
 
     return Command(
