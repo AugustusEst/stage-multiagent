@@ -66,15 +66,6 @@ for x in range(i+1, len(lines)):
     test_code += line + "\n"
 
 
-def make_system_prompt(suffix: str) -> str:
-    return (
-        "You are a helpful coding assistant with expertise in java tests, collaborating with other code assistants."
-        " Use the provided tools and your knowledge to progress towards answering the question."
-        " If you are unable to fully answer, that's OK, another assistant with different tools "
-        " will help where you left off. Execute what you can to make progress."
-        f"\n{suffix}"
-    )
-
 llm = ChatGoogleGenerativeAI(model= "gemini-2.0-flash")
 def agent_1(state: MessagesState) -> Command[Literal["agent_2", END]]:
     
@@ -108,12 +99,6 @@ def agent_1(state: MessagesState) -> Command[Literal["agent_2", END]]:
     analysis = generate_prompt(java_code, test_code, parsed_code)
     result = f"### Risultato dell'analisi per test case ###\n{analysis.content}"
     new_messages.append(HumanMessage(content=result, name="agent_1"))
-    #result= java_code
-    #new_messages.append(HumanMessage(content=result, name="java_code"))
-    #result= test_code
-    #new_messages.append(HumanMessage(content=result, name="test_code"))
-
-    #response = {"messages": state["messages"] + [HumanMessage(content=response_agent1, name="agent_2")]}
 
     return Command(
     goto="agent_2",
@@ -123,8 +108,8 @@ def agent_1(state: MessagesState) -> Command[Literal["agent_2", END]]:
     
 
 def agent_2(state: MessagesState) -> Command[Literal["agent_1", END]]:
-    print("---AGENT 2: CODE GENERATION AGENT---")
-    
+    print("---AGENT 2: CODE GENERATION AGENT---") 
+
     # Code generation agent setup
     class CodeGenState(TypedDict):
         """State for the code generation agent"""
@@ -133,6 +118,8 @@ def agent_2(state: MessagesState) -> Command[Literal["agent_1", END]]:
         generation: str
         iterations: int
     
+    
+
     class code(BaseModel):
         """Schema for code solutions"""
         prefix: str = Field(description="Description of the problem and approach")
@@ -202,6 +189,8 @@ def agent_2(state: MessagesState) -> Command[Literal["agent_1", END]]:
         iterations = iterations + 1
         return {"generation": code_solution, "messages": messages, "iterations": iterations}
     
+    
+
     # Code check function
     def code_check(state: CodeGenState):
         print("---CHECKING CODE---")
