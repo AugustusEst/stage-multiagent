@@ -82,12 +82,12 @@ def agent_1(state: MessagesState) -> Command[Literal["agent_2", END]]:
         template = PromptTemplate(
             input_variables=["java_code", "test_code", "parsed_code"],
             template=(
-                "Ti fornisco il seguente metodo Java e i suoi casi di test associati:\n\n"
-                "Metodo Java:\n{java_code}\n\n"
-                "Test unitario:\n{test_code}\n\n"
-                "Mi devi fornire una descrizione dettagliata delle funzionalità testate dai casi di test (esempio: il test01 testa la funzionalita...),\n\n"
-                "poi mi devi anche spiegare che cosa testano i casi di test nello specifico, facendo riferimento direttamente alle parti di codice interessate.\n\n"
-                "Voglio che mi fornisci una risposta ordinata e non generica come se queste informazioni le dovessi passare a qualcuno a cui servono poi per migliorare la copertura dei casi di test (non mi serve una descrizione del metodo).\n\n"
+                "I provide you with the following Java method and its associated test cases:\n\n"
+                "Java Code:\n{java_code}\n\n"
+                "Test Code:\n{test_code}\n\n"
+                "You must provide me with a detailed description of the functionality tested by the test cases (example: test01 tests functionality...),\n\n"
+                "then you must also explain to me what the test cases specifically test, referring directly to the relevant parts of code.\n\n"
+                "I want you to provide me with an orderly and non-generic answer as if I were to pass this information on to someone who then needs it to improve test case coverage (I don't need a method description).\n\n"
             )
         )
         return llm.invoke(template.format(java_code=java_code, test_code=test_code, parsed_code=parsed_code))
