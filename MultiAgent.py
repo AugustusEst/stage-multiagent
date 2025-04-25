@@ -66,7 +66,7 @@ for x in range(i+1, len(lines)):
     test_code += line + "\n"
 
 
-llm = ChatGoogleGenerativeAI(model= "gemini-2.0-flash")
+llm = ChatGoogleGenerativeAI(model= "gemini-2.5-pro-exp-03-25")
 def agent_1(state: MessagesState) -> Command[Literal["agent_2", END]]:
     
 
@@ -146,7 +146,7 @@ def agent_2(state: MessagesState) -> Command[Literal["agent_1", END]]:
                 """You are a coding assistant with expertise in java tests for the specific project\n 
                 Answer the user 
                 question based on the above provided documentation. Ensure any code you provide can be executed \n 
-                with all required imports and variables defined. Structure your answer with a description of the code solution. \n
+                with all required imports and variables defined. Structure your answer with a description of the improvements in the code solution. \n
                 Then list the imports. And finally list the functioning code block as it could be normally executed. \n
                 You need to find which inputs, already visible in the test case, or which methods are those that are most important if invoked differently with other types of inputs 
                 (most impactful methods/inputs that if changed can increase the coverage of the test case).\n

@@ -52,7 +52,7 @@ code_prompt = ChatPromptTemplate.from_messages(
             """You are a coding assistant with expertise in java tests for the specific project\n 
             Answer the user 
             question based on the above provided documentation. Ensure any code you provide can be executed \n 
-            with all required imports and variables defined. Structure your answer with a description of the code solution. \n
+            with all required imports and variables defined. Structure your answer with a description of the improvements in the code solution. \n
             Then list the imports. And finally list the functioning code block as it could be normally executed. \n
             You need to find which inputs, already visible in the test case, or which methods are those that are most important if invoked differently with other types of inputs 
             (most impactful methods/inputs that if changed can increase the coverage of the test case).\n
@@ -115,7 +115,7 @@ for x in range(i+1, len(lines)):
 
 
 
-llm = ChatGoogleGenerativeAI(model= "gemini-2.0-flash") #gemini-2.5-pro-exp-03-25")   #"gemini-2.0-flash")
+llm = ChatGoogleGenerativeAI(model= "gemini-2.5-pro-exp-03-25") #gemini-2.5-pro-exp-03-25")   #"gemini-2.0-flash")
 
 code_gen_complete = code_prompt | llm.with_structured_output(code)
 
@@ -131,4 +131,11 @@ app = graph.compile()
 question = "You need to work on improving the test coverage of the code provided. \n"
 solution = app.invoke({"messages": [("user", question)],})
 
-print(solution)
+code_sol = solution["code"]
+final_response = (
+            f"FINAL ANSWER\n\nHere's the code solution:\n\n"
+            f"{code_sol.description}\n\n"
+            f"Imports:\n```\n{code_sol.imports}\n```\n\n"
+            f"Code:\n```\n{code_sol.code}\n```"
+        )
+print(final_response)
