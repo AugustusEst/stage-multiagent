@@ -115,7 +115,7 @@ for x in range(i+1, len(lines)):
 
 
 
-llm = ChatGoogleGenerativeAI(model= "gemini-2.5-pro-exp-03-25") #gemini-2.5-pro-exp-03-25")   #"gemini-2.0-flash")
+llm = ChatGoogleGenerativeAI(model= "gemini-2.0-flash") #gemini-2.5-pro-exp-03-25")   #"gemini-2.0-flash")
 
 code_gen_complete = code_prompt | llm.with_structured_output(code)
 

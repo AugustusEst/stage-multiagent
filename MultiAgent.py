@@ -66,7 +66,7 @@ for x in range(i+1, len(lines)):
     test_code += line + "\n"
 
 
-llm = ChatGoogleGenerativeAI(model= "gemini-2.5-pro-exp-03-25")
+llm = ChatGoogleGenerativeAI(model= "gemini-2.0-flash")
 def agent_1(state: MessagesState) -> Command[Literal["agent_2", END]]:
     
 
